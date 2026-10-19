@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿Cuánto te da el Estado a lo largo de tu vida según tu salario?</title>
+<meta name="description" content="Simulador del saldo neto de toda una vida con el sector público (sanidad, educación, pensión y servicios públicos menos impuestos), con datos del Observatorio de FEDEA.">
+<!-- Vista previa en redes: cambia TU-DOMINIO por la dirección real donde publiques la página -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://TU-DOMINIO/">
+<meta property="og:title" content="¿Cuánto te da el Estado a lo largo de tu vida según tu salario?">
+<meta property="og:description" content="Calcula cuánto recibes y cuánto aportas al Estado desde que naces hasta que mueres, según tu salario. Datos del Observatorio de FEDEA.">
+<meta property="og:image" content="https://TU-DOMINIO/preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="613">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="¿Cuánto te da el Estado a lo largo de tu vida según tu salario?">
+<meta name="twitter:description" content="Calcula cuánto recibes y cuánto aportas al Estado desde que naces hasta que mueres, según tu salario. Datos del Observatorio de FEDEA.">
+<meta name="twitter:image" content="https://TU-DOMINIO/preview.png">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: cabecera ancha + dos columnas (formulario fijo a la izquierda, liquidación a la derecha); en móvil, una columna y barra de saldo fija abajo */
+:root{
+  --paper:#EEF2F1; --sheet:#FFFFFF; --ink:#14201D; --muted:#56655F; --line:#CFD8D5; --soft:#E2E9E7;
+  --recibe:#0E7457; --recibe-2:#4FA884; --recibe-3:#9ACDB6; --recibe-4:#C9E6D8;
+  --paga:#B03A2E; --paga-2:#D06A4F; --paga-3:#E59A7C; --paga-4:#F1C3AE; --paga-5:#F7DCCF;
+  --accent:#1F3FB3; --accent-ink:#FFFFFF; --focus:#1F3FB3;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0F1615; --sheet:#162120; --ink:#E4ECE9; --muted:#97A8A2; --line:#2B3936; --soft:#1D2A28;
+  --recibe:#3FC495; --recibe-2:#2E9A76; --recibe-3:#21705A; --recibe-4:#184E40;
+  --paga:#F07A63; --paga-2:#D45F49; --paga-3:#A84A39; --paga-4:#7C3A2E; --paga-5:#5A2C24;
+  --accent:#93A7FF; --accent-ink:#0F1615; --focus:#93A7FF; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0F1615; --sheet:#162120; --ink:#E4ECE9; --muted:#97A8A2; --line:#2B3936; --soft:#1D2A28;
+  --recibe:#3FC495; --recibe-2:#2E9A76; --recibe-3:#21705A; --recibe-4:#184E40;
+  --paga:#F07A63; --paga-2:#D45F49; --paga-3:#A84A39; --paga-4:#7C3A2E; --paga-5:#5A2C24;
+  --accent:#93A7FF; --accent-ink:#0F1615; --focus:#93A7FF; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* Cabecera */
+.top{padding-block:40px 28px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-num);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.top h1{font-size:clamp(32px,5.4vw,60px);font-weight:850;font-stretch:112%;line-height:1;letter-spacing:-.01em;margin-top:12px;max-width:none}
+.top h1 .r{color:var(--recibe)} .top h1 .p{color:var(--paga)}
+.lede{max-width:none;color:var(--muted);font-size:18px;margin:16px 0 0}
+
+/* Rejilla */
+.grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:32px;padding-block:28px 48px;align-items:start}
+@media (max-width:920px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Formulario */
+.form{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:22px;position:sticky;top:calc(16px + env(safe-area-inset-top,0px));max-height:calc(100vh - 32px);overflow:auto}
+@media (max-width:920px){.form{position:static;max-height:none}}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+legend{font-family:var(--f-display);font-weight:700;font-stretch:100%;font-size:15px;padding:0;margin-bottom:10px;display:flex;gap:8px;align-items:baseline}
+legend small{font-family:var(--f-body);font-weight:400;color:var(--muted);font-size:13px}
+label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px;min-width:0}
+select,input[type=number],input[type=text]{font:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:8px 10px;width:100%;min-width:0}
+input.money{font-family:var(--f-num);text-align:right}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.adult{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;border:1px solid var(--soft);border-radius:4px;background:var(--paper);position:relative}
+.adult .full{grid-column:1/-1}
+.adult select,.adult input{background:var(--sheet)}
+.adult-h{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700}
+.x{font:inherit;font-size:12px;border:0;background:none;color:var(--muted);cursor:pointer;padding:2px 4px;text-decoration:underline}
+.add{font:inherit;font-size:14px;border:1px dashed var(--line);background:none;color:var(--accent);border-radius:4px;padding:8px;cursor:pointer}
+.add[disabled]{opacity:.45;cursor:not-allowed}
+.kids{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.step{display:flex;align-items:center;border:1px solid var(--line);border-radius:4px;background:var(--paper)}
+.step button{font:inherit;border:0;background:none;color:var(--ink);width:32px;height:36px;cursor:pointer;font-size:18px;line-height:1}
+.step input{border:0;background:none;text-align:center;padding:6px 0;font-family:var(--f-num)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.toggle{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--ink);flex-direction:row;cursor:pointer}
+.toggle input{margin-top:4px;accent-color:var(--accent);width:18px;height:18px;flex:none}
+.toggle span small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+
+/* Resultados */
+.results{display:flex;flex-direction:column;gap:28px;min-width:0}
+.verdict{display:grid;gap:6px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.badge{justify-self:start;font-family:var(--f-num);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:3px;font-weight:600}
+.badge.pos{background:var(--recibe-4);color:var(--recibe)} .badge.neg{background:var(--paga-5);color:var(--paga)}
+.big{font-family:var(--f-display);font-weight:900;font-stretch:112%;font-size:clamp(40px,6.4vw,76px);line-height:.95;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.big.pos{color:var(--recibe)} .big.neg{color:var(--paga)}
+.big small{font-size:.38em;font-weight:700;font-stretch:100%;color:var(--muted);letter-spacing:0;margin-left:6px}
+.verdict p{margin:0;color:var(--muted);max-width:60ch}
+.verdict p b{color:var(--ink)}
+
+.bars{display:grid;gap:14px}
+.bar-row{display:grid;grid-template-columns:86px minmax(0,1fr) 110px;gap:12px;align-items:center}
+.bar-row .lab{font-family:var(--f-display);font-weight:700;font-size:15px}
+.bar-row .tot{text-align:right;font-size:15px;font-weight:600}
+.bar{display:flex;height:30px;background:var(--soft);border-radius:3px;overflow:hidden}
+.bar span{display:block;height:100%;min-width:0;transition:width .35s ease}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);padding-left:98px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+@media (max-width:560px){.bar-row{grid-template-columns:64px minmax(0,1fr);}.bar-row .tot{grid-column:2;text-align:left;margin-top:-8px;font-size:14px}.legend{padding-left:0}}
+@media (prefers-reduced-motion:reduce){.bar span{transition:none}}
+
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:20px;min-width:0}
+.card h2{font-size:20px;font-weight:800;font-stretch:105%}
+.card .sub{color:var(--muted);font-size:14px;margin:4px 0 14px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{padding:7px 6px;text-align:left;border-bottom:1px solid var(--soft);vertical-align:baseline}
+td.v{text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.grp th{font-family:var(--f-display);font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding-top:16px;border-bottom:1px solid var(--line)}
+tr.grp.r th{color:var(--recibe)} tr.grp.p th{color:var(--paga)}
+tr.sum td{font-weight:700;border-bottom:2px solid var(--line)}
+tr.saldo td{font-weight:800;font-size:16px;border-bottom:0;padding-top:12px}
+.src{font-family:var(--f-num);font-size:11px;letter-spacing:.04em;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:1px 5px;white-space:nowrap}
+.note{display:block;font-size:12.5px;color:var(--muted)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:0}
+
+.chart svg{width:100%;height:auto;display:block}
+.chart text{font-family:var(--f-num);font-size:11px;fill:var(--muted)}
+.chart .lbl{font-family:var(--f-body);font-size:12px;fill:var(--ink)}
+.cmp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.cmp{grid-template-columns:minmax(0,1fr)}}
+.cmp div{border-top:3px solid var(--line);padding-top:10px}
+.cmp .k{font-size:13px;color:var(--muted)}
+.cmp .n{font-family:var(--f-num);font-size:20px;font-weight:600;margin-top:2px}
+.cmp .t{font-size:13.5px;margin-top:2px}
+
+.method{border-top:1px solid var(--line);padding-block:36px 56px}
+.method h2{font-size:28px;font-weight:850;font-stretch:110%;margin-bottom:18px}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 40px}
+@media (max-width:760px){.cols{grid-template-columns:minmax(0,1fr)}}
+.method h3{font-size:16px;font-weight:750;margin-bottom:8px}
+.method p,.method li{color:var(--muted);font-size:15px;max-width:65ch}
+.method ul{padding-left:18px;margin:0;display:grid;gap:6px}
+.method b{color:var(--ink)}
+
+.mobilebar{display:none}
+@media (max-width:920px){
+  .mobilebar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:5;justify-content:space-between;align-items:center;gap:12px;background:var(--sheet);border-top:1px solid var(--line);
+    padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .mobilebar .n{font-family:var(--f-display);font-weight:900;font-stretch:115%;font-size:22px}
+  .mobilebar a{font-size:14px}
+  body{padding-bottom:70px}
+}
+</style>
+<style>
+.range{display:flex;flex-direction:column;gap:6px}
+.range input[type=range]{width:100%;accent-color:var(--accent)}
+.pctl{font-size:13px;color:var(--muted)} .pctl b{color:var(--ink)}
+.seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg label{flex:1;flex-direction:row;justify-content:center;gap:0;cursor:pointer;padding:7px 4px;font-size:13.5px;color:var(--ink);background:var(--paper);border-right:1px solid var(--line);text-align:center}
+.seg label:last-child{border-right:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--accent);color:var(--accent-ink)}
+.seg label:has(input:focus-visible){outline:2px solid var(--focus);outline-offset:-2px}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.facts div{border-top:1px solid var(--line);padding-top:8px}
+.facts .k{font-size:12.5px;color:var(--muted)} .facts .n{font-family:var(--f-num);font-size:17px;font-weight:600}
+.headline{font-family:var(--f-display);font-size:clamp(20px,2.6vw,26px);font-weight:800;font-stretch:105%;line-height:1.2;margin:0 0 6px}
+.headline .r{color:var(--recibe)}
+.dec{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;margin-top:14px}
+.dec div{text-align:center;font-size:11.5px;line-height:1.35;padding:8px 2px;border-radius:3px;font-family:var(--f-num)}
+.dec .pos{background:var(--recibe-4);color:var(--recibe)} .dec .neg{background:var(--paga-5);color:var(--paga)}
+.dec b{display:block;font-family:var(--f-display);font-size:13px}
+@media (max-width:560px){.dec{grid-template-columns:repeat(5,minmax(0,1fr))}}
+</style>
+
+<style>:root{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <h1>¿Cuánto te da el Estado a lo largo de <span class="r">tu vida</span> según tu salario?</h1>
+  <p class="lede">Mediante esta simulación se estima cuánto recibe o aporta al Estado en términos netos una persona a lo largo de su vida en función del salario medio de su carrera. De niña recibe sanidad y educación; mientras trabaja paga IRPF, cotizaciones e impuestos sobre el consumo; al jubilarse cobra su pensión. Toda su vida se beneficia de los servicios públicos generales. Al final se suma todo.</p>
+  <p class="lede">Los datos provienen del décimo Informe del Observatorio sobre el reparto de los impuestos y las prestaciones entre los hogares españoles elaborado por FEDEA.</p>
+</div></header>
+
+<div class="wrap">
+<main class="grid">
+  <form class="form" id="f" autocomplete="off">
+    <fieldset>
+      <legend>Ejemplos <small>según salario</small></legend>
+      <div class="presets" id="presets"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Tu salario <small>bruto anual medio de tu carrera</small></legend>
+      <div class="range">
+        <input type="text" inputmode="numeric" class="money" id="salario" value="23.349" aria-label="Salario bruto anual medio">
+        <input type="range" id="salRange" min="0" max="1000" step="1" aria-label="Ajustar salario">
+        <span class="pctl" id="pctl"></span>
+      </div>
+      <div class="seg" role="radiogroup" aria-label="Tipo de trabajo">
+        <label><input type="radio" name="tipo" value="salario" checked>Asalariado</label>
+        <label><input type="radio" name="tipo" value="autonomo">Autónomo</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Tu vida</legend>
+      <label for="estudios">Estudios
+        <select id="estudios"><option value="obligatoria">Obligatorios (trabajas desde los 18)</option><option value="media" selected>Bachillerato o FP (desde los 20)</option><option value="universidad">Universidad (desde los 23)</option></select>
+      </label>
+      <div class="two">
+        <label for="sexo">Esperanza de vida
+          <select id="sexo"><option value="media" selected>Media: 86 años</option><option value="hombre">Hombre: 84 años</option><option value="mujer">Mujer: 88 años</option></select>
+        </label>
+        <label for="hijos">Hijos
+          <select id="hijos"><option value="0">Ninguno</option><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select>
+        </label>
+      </div>
+      <div class="two">
+        <label for="paro">Años en paro con prestación
+          <select id="paro"><option value="0">0</option><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option><option value="8">8</option></select>
+        </label>
+        <label for="ccaa">Comunidad
+          <select id="ccaa"></select>
+        </label>
+      </div>
+      <p class="hint">Jubilación a los 67 años. Los hijos solo reducen tu IRPF: su sanidad y su educación cuentan en su propia vida, no en la tuya.</p>
+    </fieldset>
+
+  </form>
+
+  <section class="results" aria-live="polite">
+    <div class="verdict" id="resultado">
+      <span class="badge" id="badge"></span>
+      <div class="big" id="big"></div>
+      <p id="verdictText"></p>
+    </div>
+
+    <div class="bars" id="bars"></div>
+
+    <div class="card chart">
+      <h2>Año a año</h2>
+      <p class="sub">Saldo de cada año de tu vida (barras) y saldo acumulado (línea). Verde: recibes más de lo que pagas. Rojo: pagas más.</p>
+      <div id="chartLife"></div>
+    </div>
+
+    <div class="card">
+      <h2>Liquidación de toda la vida</h2>
+      <p class="sub" id="liqSub"></p>
+      <div class="tbl-wrap"><table id="tabla"></table></div>
+      <div class="facts" id="facts" style="margin-top:16px"></div>
+    </div>
+
+    <div class="card chart">
+      <h2>¿Qué tramos salen beneficiarios?</h2>
+      <p class="headline" id="tramoHead"></p>
+      <p class="sub">Saldo de toda la vida según el salario, con el resto de tus datos. Cada casilla es un decil de asalariados según la distribución salarial del INE para 2023 (mediana 23.349 €, percentil 90 49.836 €).</p>
+      <div id="chartTramos"></div>
+      <div class="dec" id="dec"></div>
+    </div>
+  </section>
+</main>
+</div>
+
+<section class="method"><div class="wrap">
+  <h2>Cómo se calcula</h2>
+  <div class="cols">
+    <div>
+      <h3>La vida que se simula</h3>
+      <ul>
+        <li><b>Euros de 2023:</b> cada año de tu vida se valora con las cuantías, tipos y prestaciones de 2023. Es una foto del sistema actual aplicada a una vida completa, no una proyección.</li>
+        <li><b>Carrera:</b> trabajas desde que acabas los estudios hasta los 67. Tu salario sigue un perfil por edad (empiezas un 30 % por debajo de tu media y llegas a un máximo hacia los 50), y la media de toda la carrera es el salario que indicas. Los años de paro se reparten a lo largo de la carrera, con una prestación del 60 % del salario hasta 14.700 € al año.</li>
+        <li><b>Pensión:</b> media de tus bases de cotización de los últimos 25 años, con el porcentaje que corresponde a tus años cotizados y los límites de 2023 (mínima de 10.104 € y máxima de 42.829 € al año). Los autónomos cotizan y cobran por la base mínima de su tramo.</li>
+        <li><b>Esperanza de vida:</b> 65 años más la esperanza de vida a esa edad según el INE.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Qué se cobra y qué se paga</h3>
+      <ul>
+        <li><b>IRPF y cotizaciones:</b> normativa de 2023, por persona (escala estatal más autonómica de referencia, mínimos personal y por hijos, reducción por rendimientos del trabajo). La cotización empresarial cuenta como impuesto que recae sobre el trabajador, como hace el Observatorio.</li>
+        <li><b>IVA, impuestos especiales, Sociedades, Patrimonio e IBI:</b> importe medio que el Observatorio imputa a los hogares con tu renta bruta (Cuadros A.1.4 y A.1.5).</li>
+        <li><b>Sanidad:</b> gasto medio por persona y edad deducido del Cuadro A.4.6: 1.632 € de niño, 1.358 € hasta los 29, 1.584 € de 30 a 64 y 3.932 € desde los 65.</li>
+        <li><b>Educación:</b> 5.288 € por año escolarizado desde los 3 años hasta el final de tus estudios, la media por hijo que imputa el Observatorio (Cuadro A.4.6).</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Qué conviene saber</h3>
+      <ul>
+        <li><b>Resto del gasto público:</b> además de sanidad, educación y prestaciones, cada persona recibe su parte de defensa, seguridad, justicia, infraestructuras, cultura y medio ambiente, como en la renta final de la sección 7.3 del informe: unos 3.760 € al año por persona y 1.180 € más por cada año trabajado (un tercio de asuntos económicos va a quienes trabajan). Sale del gasto de 2023 de la IGAE por funciones, sin contar los intereses de la deuda.</li>
+        <li>Supone carreras completas. Quien tiene lagunas de cotización o trabajo a tiempo parcial cobra menos pensión, pero también paga menos.</li>
+        <li>No recoge las pensiones de viudedad, la dependencia, las escalas autonómicas del IRPF ni la mortalidad antes de los 65.</li>
+        <li>Los porcentajes de asalariados salen de una distribución lognormal ajustada a la mediana y al percentil 90 del INE. Reproduce bien el percentil 75 publicado (34.817 € frente a 34.992 €).</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Fuentes</h3>
+      <ul>
+        <li>López Laborda, J., Marín González, C. y Onrubia, J. (2026). <i>Observatorio sobre el reparto de los impuestos y las prestaciones entre los hogares españoles. Décimo informe, 2022 y 2023</i>. FEDEA, EEE 2026/13, y su anexo estadístico.</li>
+        <li>INE, <a href="https://ine.es/dyngs/Prensa/EAES2023.htm" target="_blank" rel="noopener">Encuesta Anual de Estructura Salarial 2023</a>.</li>
+        <li>IGAE, <a href="https://www.igae.pap.hacienda.gob.es/sitios/igae/es-ES/Contabilidad/ContabilidadNacional/Publicaciones/Documents/AAPP_A/Funcional%202019-2023.pdf" target="_blank" rel="noopener">Clasificación funcional del gasto de las Administraciones Públicas 2019-2023</a>.</li>
+        <li>Ley 35/2006 del IRPF, Orden PCM/74/2023 de cotización y cuantías de pensiones de 2023.</li>
+      </ul>
+      <p style="margin-top:12px">Estimación orientativa con fines divulgativos.</p>
+    </div>
+  </div>
+</div></section>
+
+<div class="mobilebar" aria-hidden="true"><span>Saldo de toda tu vida</span><span class="n" id="mbN"></span><a href="#resultado">Ver</a></div>
+
+<script>
+const FEDEA={"brackets":[{"label":"Quintil 1","hog":3863370,"rb":13011.46,"pmon":8333.8,"imp":3414.14,"esp":5687.01,"irpf":120.56,"ip":37.07,"isoc":15.04,"cst":688.78,"cse":954.03,"ibi":180.24,"iva":1308.07,"itp":115.28,"alc":4.94,"tab":45.53,"hid":81.32,"ele":3.59,"ips":39.92,"san":4109.93,"edu":1577.08,"saldo":10606.67,"jub":3842.2,"sup":2279.88,"des":882.38,"inv":543.67,"asis":552.25,"resto":233.43},{"label":"Quintil 2","hog":3863369,"rb":28842.36,"pmon":11471.16,"imp":8963.98,"esp":7320.34,"irpf":1355.59,"ip":32.09,"isoc":29.32,"cst":1348.78,"cse":3717.46,"ibi":215.95,"iva":1980.86,"itp":196.19,"alc":8.59,"tab":78.85,"hid":156.35,"ele":4.36,"ips":55.54,"san":4706.38,"edu":2613.96,"saldo":9827.53,"jub":6942.05,"sup":1764.87,"des":1243.7,"inv":835.45,"asis":276.75,"resto":408.33},{"label":"Quintil 3","hog":3863370,"rb":44619.32,"pmon":13774.92,"imp":15216.8,"esp":8098.1,"irpf":3440.58,"ip":37.36,"isoc":66.24,"cst":2005.34,"cse":6416.42,"ibi":257.68,"iva":2557.91,"itp":267.84,"alc":13.38,"tab":112.51,"hid":224.61,"ele":4.91,"ips":69.73,"san":5087.66,"edu":3010.44,"saldo":6656.21,"jub":9678.59,"sup":1254.19,"des":1272.25,"inv":944.85,"asis":99.47,"resto":525.56},{"label":"Quintil 4","hog":3863369,"rb":66619.76,"pmon":12796.39,"imp":24976.47,"esp":9123.74,"irpf":6386.81,"ip":45.22,"isoc":140.29,"cst":3037.85,"cse":11150.26,"ibi":296.19,"iva":3243.68,"itp":360.94,"alc":16.17,"tab":173.29,"hid":334.05,"ele":5.46,"ips":82.43,"san":5564.85,"edu":3558.89,"saldo":-3056.35,"jub":8769.86,"sup":1100.05,"des":1311.23,"inv":923.71,"asis":101.95,"resto":589.6},{"label":"Decil 9","hog":1931685,"rb":95295.83,"pmon":12865.85,"imp":37645.8,"esp":10298.86,"irpf":11515.81,"ip":62.74,"isoc":405.37,"cst":4220.57,"cse":16333.95,"ibi":361.47,"iva":3909.78,"itp":463.59,"alc":22.44,"tab":197.11,"hid":414.98,"ele":5.92,"ips":93.56,"san":5967.8,"edu":4331.05,"saldo":-14481.1,"jub":9162.11,"sup":938.5,"des":1386.88,"inv":758.36,"asis":35.3,"resto":584.7},{"label":"Centiles 91–99","hog":1738516,"rb":155296.35,"pmon":13257.09,"imp":60285.11,"esp":11126.06,"irpf":24332.4,"ip":147.21,"isoc":2303.24,"cst":5522.91,"cse":21451.08,"ibi":483.44,"iva":4937.72,"itp":629.69,"alc":27.26,"tab":263.66,"hid":552.55,"ele":6.43,"ips":110.96,"san":6249.45,"edu":4876.61,"saldo":-35901.96,"jub":9535.6,"sup":1111.8,"des":1146.6,"inv":794.82,"asis":126.19,"resto":542.08},{"label":"1 % más rico","hog":193168,"rb":476221.35,"pmon":17370.87,"imp":121740.54,"esp":10538.85,"irpf":51883.33,"ip":930.62,"isoc":35108.5,"cst":5614.18,"cse":19368.89,"ibi":664.84,"iva":6822.87,"itp":791.6,"alc":39.4,"tab":387.42,"hid":669.85,"ele":8.13,"ips":115.76,"san":6230.16,"edu":4308.69,"saldo":-93830.83,"jub":12970.87,"sup":1206.67,"des":1163.32,"inv":1044.44,"asis":264.74,"resto":720.83},{"label":"Total","hog":19316847,"rb":58887.03,"pmon":11928.68,"imp":20921.92,"esp":8182.46,"irpf":6121.04,"ip":59.18,"isoc":649.09,"cst":2391.41,"cse":8205.32,"ibi":276.32,"iva":2721.71,"itp":299.0,"alc":13.71,"tab":129.35,"hid":257.19,"ele":4.92,"ips":70.02,"san":5115.29,"edu":3067.16,"saldo":-810.78,"jub":7750.66,"sup":1485.78,"des":1195.43,"inv":807.35,"asis":223.62,"resto":465.85}],"comp":[{"label":"Una Persona > 65 años","hog":2252599,"rb":28590,"pmon":18516,"imp":5324,"esp":3934,"saldo":17125},{"label":"Una persona entre 30 y 65 años","hog":2917755,"rb":36578,"pmon":2957,"imp":14890,"esp":1663,"saldo":-10270},{"label":"Una persona < 30 años","hog":264218,"rb":25174,"pmon":1422,"imp":10139,"esp":1893,"saldo":-6824},{"label":"Pareja sin hijos al menos 1 > 65 años","hog":2817775,"rb":53239,"pmon":30065,"imp":12441,"esp":6786,"saldo":24409},{"label":"Pareja sin hijos ambos < 65 años","hog":2365571,"rb":65777,"pmon":4917,"imp":26937,"esp":3531,"saldo":-18489},{"label":"Pareja con 1 hijo","hog":1866293,"rb":68319,"pmon":4880,"imp":27465,"esp":10204,"saldo":-12381},{"label":"Pareja con 2 hijos","hog":1819765,"rb":77369,"pmon":3690,"imp":31039,"esp":17038,"saldo":-10311},{"label":"Pareja con 3 o más hijos","hog":644957,"rb":76932,"pmon":4316,"imp":29033,"esp":25635,"saldo":917},{"label":"Monoparental con al menos 1 hijo","hog":637391,"rb":37228,"pmon":4340,"imp":13959,"esp":11983,"saldo":2363},{"label":"Otros hogares","hog":3730399,"rb":83763,"pmon":16617,"imp":29992,"esp":11299,"saldo":-2077},{"label":"Total de Hogares","hog":19316847,"rb":58887,"pmon":11929,"imp":20922,"esp":8182,"saldo":-811}],"fuente":[{"label":"Asalariado","hog":11341561,"rb":68640,"pmon":4311,"imp":28076,"esp":8983,"saldo":-14782},{"label":"Autónomo","hog":1083763,"rb":62263,"pmon":3346,"imp":20778,"esp":9246,"saldo":-8185},{"label":"Pensionista","hog":5921971,"rb":40485,"pmon":28231,"imp":8753,"esp":6438,"saldo":25916},{"label":"Perceptor de rentas de la propiedad","hog":233221,"rb":147054,"pmon":8150,"imp":27436,"esp":6154,"saldo":-13132},{"label":"Perceptor de subsidios","hog":677112,"rb":24916,"pmon":12860,"imp":7127,"esp":9235,"saldo":14968},{"label":"Perceptor de transferencias de hogares","hog":59095,"rb":10604,"pmon":1817,"imp":2458,"esp":5870,"saldo":5229},{"label":"Total de hogares","hog":19316847,"rb":58887,"pmon":11929,"imp":20922,"esp":8182,"saldo":-811}],"edad":[{"label":"Edad entre 17 y 30 años","hog":950227,"rb":50718,"pmon":4506,"imp":20009,"esp":6932,"saldo":-8571},{"label":"Edad entre 30 y 40 años","hog":2861802,"rb":57645,"pmon":4004,"imp":23187,"esp":7911,"saldo":-11272},{"label":"Edad entre 40 y 50 años","hog":4237097,"rb":60696,"pmon":4003,"imp":24282,"esp":10695,"saldo":-9585},{"label":"Edad entre 50 y 65 años","hog":5561620,"rb":72551,"pmon":8093,"imp":28018,"esp":8322,"saldo":-11602},{"label":"Edad entre 65 y 85 años","hog":4844825,"rb":48950,"pmon":27890,"imp":11382,"esp":6474,"saldo":22981},{"label":"Edad  mayor de 85 años","hog":857818,"rb":30786,"pmon":20489,"imp":5692,"esp":6784,"saldo":21580},{"label":"Total de hogares","hog":19316847,"rb":58887,"pmon":11929,"imp":20922,"esp":8182,"saldo":-811}],"ccaa":[{"label":"Andalucía","hog":3374941,"rb":46173,"pmon":11108,"imp":16562,"esp":7826,"saldo":2371,"indF":1.011},{"label":"Aragón","hog":560296,"rb":62509,"pmon":12851,"imp":21969,"esp":7872,"saldo":-1245,"indF":0.848},{"label":"Asturias","hog":454076,"rb":58166,"pmon":15105,"imp":19992,"esp":8080,"saldo":3193,"indF":0.849},{"label":"Baleares","hog":460941,"rb":67005,"pmon":10292,"imp":25672,"esp":8101,"saldo":-7279,"indF":1.059},{"label":"Canarias","hog":855110,"rb":52462,"pmon":10153,"imp":17180,"esp":8267,"saldo":1240,"indF":0.614},{"label":"Cantabria","hog":245206,"rb":57514,"pmon":13442,"imp":19661,"esp":8652,"saldo":2433,"indF":0.905},{"label":"Cataluña","hog":3130707,"rb":68413,"pmon":12752,"imp":25041,"esp":8571,"saldo":-3719,"indF":0.92},{"label":"Ceuta","hog":28095,"rb":58157,"pmon":10333,"imp":16088,"esp":9371,"saldo":3616,"indF":0.489},{"label":"Castilla-La Mancha","hog":833134,"rb":47997,"pmon":10123,"imp":16836,"esp":8025,"saldo":1313,"indF":0.898},{"label":"Castilla y León","hog":1052569,"rb":52470,"pmon":12874,"imp":17615,"esp":8290,"saldo":3549,"indF":0.851},{"label":"Extremadura","hog":443417,"rb":42256,"pmon":10763,"imp":14603,"esp":8857,"saldo":5017,"indF":0.896},{"label":"Galicia","hog":1120374,"rb":55167,"pmon":12805,"imp":19129,"esp":8471,"saldo":2146,"indF":0.883},{"label":"Madrid","hog":2676090,"rb":74443,"pmon":11977,"imp":27091,"esp":7417,"saldo":-7698,"indF":0.881},{"label":"Melilla","hog":24547,"rb":55584,"pmon":11900,"imp":14527,"esp":9559,"saldo":6932,"indF":0.536},{"label":"Murcia","hog":570266,"rb":49871,"pmon":10081,"imp":17875,"esp":9379,"saldo":1584,"indF":0.992},{"label":"Navarra","hog":266806,"rb":70032,"pmon":13532,"imp":24710,"esp":9509,"saldo":-1669,"indF":0.87},{"label":"País Vasco","hog":942256,"rb":73056,"pmon":15708,"imp":23689,"esp":9761,"saldo":1779,"indF":0.812},{"label":"La Rioja","hog":136387,"rb":56354,"pmon":11228,"imp":19765,"esp":7991,"saldo":-546,"indF":0.905},{"label":"C. Valenciana","hog":2141505,"rb":53508,"pmon":10648,"imp":19394,"esp":7686,"saldo":-1059,"indF":0.972},{"label":"Total de Hogares","hog":19316847,"rb":58887,"pmon":11929,"imp":20922,"esp":8182,"saldo":-811,"indF":0.902}]};
+// ===== Modelo de cálculo (año 2023) =====
+const P = {
+  // Cotizaciones 2023 (Régimen General)
+  ssTrab: 0.0645,           // CC 4,70 + desempleo 1,55 + FP 0,10 + MEI 0,10
+  ssEmp: 0.319,             // CC 23,60 + desempleo 5,50 + FOGASA 0,20 + FP 0,60 + MEI 0,50 + AT/EP medio 1,50
+  baseMax: 4495.5 * 12,     // base máxima anual 2023
+  ssAut: 0.312,             // RETA 2023: CC 28,30 + CP 1,30 + cese 0,90 + FP 0,10 + MEI 0,60
+  // tramos RETA 2023: [rendimiento neto mensual hasta, base mínima mensual]
+  tramosAut: [[670,751.63],[900,849.67],[1166.7,898.69],[1300,950.98],[1500,960.78],[1700,960.78],[1850,1013.07],[2030,1029.41],[2330,1045.75],[2760,1078.43],[3190,1143.79],[3620,1209.15],[4050,1274.51],[6000,1372.55],[Infinity,1633.99]],
+  // IRPF 2023: escala general (estatal + autonómica de referencia)
+  escala: [[12450,0.19],[20200,0.24],[35200,0.30],[60000,0.37],[300000,0.45],[Infinity,0.47]],
+  escalaAhorro: [[6000,0.19],[50000,0.21],[200000,0.23],[300000,0.27],[Infinity,0.28]],
+  minPersonal: 5550, min65: 1150,
+  minDesc: [2400,2700,4000,4500], minDesc3: 2800,
+  dedMaternidad: 1200,
+  // Prestaciones en especie por persona, derivadas del Cuadro A.4.6 (FEDEA, 2023)
+  sanidad: { menor30: 1358.45, de30a64: 1583.52, mas65: 3931.74, hijo: (6462.74 - 3198.94) / 2 },
+  educacionPorHijo: 10575.28 / 2,
+  // Enfoque alternativo (FEDEA, sección 7.2)
+  alt: { pensionTransfer: 0.379, desempleoTransfer: 0.3415, cotizTributo: 0.224 },
+};
+
+function cuotaEscala(base, escala) {
+  let c = 0, prev = 0;
+  for (const [hasta, t] of escala) {
+    if (base <= prev) break;
+    c += (Math.min(base, hasta) - prev) * t;
+    prev = hasta;
+  }
+  return c;
+}
+
+function interpFEDEA(rb, key) {
+  const B = FEDEA.brackets.filter(b => b.label !== 'Total');
+  const xs = B.map(b => b.rb), ys = B.map(b => b[key]);
+  if (rb <= 0) return 0;
+  if (rb <= xs[0]) return ys[0] / xs[0] * rb;
+  if (rb >= xs[xs.length - 1]) return ys[ys.length - 1] / xs[xs.length - 1] * rb;
+  for (let i = 1; i < xs.length; i++) {
+    if (rb <= xs[i]) { const f = (rb - xs[i - 1]) / (xs[i] - xs[i - 1]); return ys[i - 1] + f * (ys[i] - ys[i - 1]); }
+  }
+}
+
+function cotizAutonomo(rendAnual) {
+  if (rendAnual <= 0) return 0;
+  const mensual = rendAnual * 0.93 / 12;
+  const base = P.tramosAut.find(t => mensual <= t[0])[1];
+  return base * 12 * P.ssAut;
+}
+
+function reduccionTrabajo(rnt) {
+  if (rnt <= 14047.5) return 6498;
+  if (rnt <= 19747.5) return 6498 - 1.14 * (rnt - 14047.5);
+  return 0;
+}
+
+// h = { ccaa, adultos:[{edad:'menor30'|'de30a64'|'mas65', fuente:'salario'|'autonomo'|'pension'|'desempleo'|'ninguna', importe}],
+//       hijos02, hijos317, hijos1824, centro:'publico'|'privado', rentasCapital, otrasAyudas, alt:boolean }
+function simular(h) {
+  const r = { pagas: {}, recibes: {}, info: {} };
+  let salarios = 0, cotEmp = 0, cotTrab = 0, cotAut = 0, rendAut = 0, pensiones = 0, desempleo = 0;
+  const contribuyentes = h.adultos.map(a => ({ ...a, rn: 0, tipoTrabajo: false, irpf: 0, minimo: P.minPersonal + (a.edad === 'mas65' ? P.min65 : 0) }));
+
+  for (const a of contribuyentes) {
+    const x = Math.max(0, +a.importe || 0);
+    if (a.fuente === 'salario') {
+      const base = Math.min(x, P.baseMax);
+      const st = base * P.ssTrab, se = base * P.ssEmp;
+      salarios += x; cotTrab += st; cotEmp += se;
+      const rnt = x - st;
+      a.rn = Math.max(0, rnt - 2000 - reduccionTrabajo(rnt));
+      a.tipoTrabajo = true; a.ingreso = x; a.trabaja = x > 0;
+    } else if (a.fuente === 'pension' || a.fuente === 'desempleo') {
+      if (a.fuente === 'pension') pensiones += x; else desempleo += x;
+      a.rn = Math.max(0, x - 2000 - reduccionTrabajo(x));
+      a.tipoTrabajo = true; a.ingreso = x; a.trabaja = a.fuente === 'desempleo' && x > 0;
+    } else if (a.fuente === 'autonomo') {
+      const c = cotizAutonomo(x);
+      cotAut += c; rendAut += x;
+      const neto = Math.max(0, x - c);
+      a.rn = Math.max(0, neto - Math.min(2000, neto * 0.05));
+      a.ingreso = x; a.trabaja = x > 0;
+    }
+  }
+
+  // Mínimo por descendientes: se reparte entre los dos primeros adultos con ingresos
+  const nHijos = (+h.hijos02 || 0) + (+h.hijos317 || 0) + (+h.hijos1824 || 0);
+  let minDesc = 0;
+  for (let i = 0; i < nHijos; i++) minDesc += P.minDesc[Math.min(i, 3)];
+  minDesc += (+h.hijos02 || 0) * P.minDesc3;
+  const declarantes = contribuyentes.filter(a => a.rn > 0 || a.ingreso > 0).slice(0, 2);
+  declarantes.forEach(a => a.minimo += minDesc / declarantes.length);
+
+  // Rentas del capital: base del ahorro del primer declarante (o del primer adulto)
+  const capital = Math.max(0, +h.rentasCapital || 0);
+
+  let irpf = 0;
+  contribuyentes.forEach((a, i) => {
+    const base = a.rn;
+    let c = Math.max(0, cuotaEscala(base, P.escala) - cuotaEscala(Math.min(a.minimo, base), P.escala));
+    // límite de retención / no obligados a declarar (un pagador, rentas del trabajo ≤ 22.000 €)
+    if (a.tipoTrabajo && a.ingreso <= 22000) c = Math.min(c, 0.43 * Math.max(0, a.ingreso - 15876));
+    a.irpf = c; irpf += c;
+  });
+  const irpfAhorro = cuotaEscala(capital, P.escalaAhorro);
+  irpf += irpfAhorro;
+  const algunTrabaja = contribuyentes.some(a => a.trabaja);
+  const dedMat = algunTrabaja ? (+h.hijos02 || 0) * P.dedMaternidad : 0;
+
+  const otrasAyudas = Math.max(0, +h.otrasAyudas || 0);
+  const prestMon = pensiones + desempleo + otrasAyudas;
+  const rentaMercado = salarios + cotEmp + rendAut + capital;
+  const rb = rentaMercado + prestMon;
+
+  // Impuestos imputados con el Observatorio (interpolación por renta bruta)
+  const reg = FEDEA.ccaa.find(c => c.label === h.ccaa);
+  const tot = FEDEA.ccaa.find(c => c.label.startsWith('Total'));
+  const regimenEspecial = ['Canarias', 'Ceuta', 'Melilla'].includes(h.ccaa);
+  const fInd = regimenEspecial ? reg.indF / tot.indF : 1;
+  const I = k => interpFEDEA(rb, k);
+
+  const cotizTotal = cotTrab + cotEmp + cotAut;
+  const fCot = h.alt ? P.alt.cotizTributo : 1;
+
+  r.pagas = {
+    irpf: Math.max(0, irpf - dedMat),
+    cotTrab: (cotTrab + cotAut) * fCot,
+    cotEmp: cotEmp * fCot,
+    iva: (I('iva') + I('itp')) * fInd,
+    especiales: (I('alc') + I('tab') + I('hid') + I('ele') + I('ips')) * fInd,
+    sociedades: I('isoc'),
+    patrimonioIbi: I('ip') + I('ibi'),
+  };
+  r.detalle = { alc: I('alc') * fInd, tab: I('tab') * fInd, hid: I('hid') * fInd, ele: I('ele') * fInd, ips: I('ips') * fInd, iva: I('iva') * fInd, itp: I('itp') * fInd, ip: I('ip'), ibi: I('ibi'), dedMat, irpfAhorro, cotAut: cotAut * fCot };
+
+  // Prestaciones en especie
+  let san = 0;
+  for (const a of h.adultos) san += P.sanidad[a.edad];
+  san += ((+h.hijos02 || 0) + (+h.hijos317 || 0)) * P.sanidad.hijo + (+h.hijos1824 || 0) * P.sanidad.menor30;
+  const edu = h.centro === 'privado' ? 0 : ((+h.hijos317 || 0) + (+h.hijos1824 || 0)) * P.educacionPorHijo;
+
+  r.recibes = {
+    pensiones: pensiones * (h.alt ? P.alt.pensionTransfer : 1),
+    desempleo: desempleo * (h.alt ? P.alt.desempleoTransfer : 1),
+    otrasAyudas,
+    sanidad: san,
+    educacion: edu,
+  };
+  const sum = o => Object.values(o).reduce((s, v) => s + v, 0);
+  r.totalPagas = sum(r.pagas);
+  r.totalRecibes = sum(r.recibes);
+  r.saldo = r.totalRecibes - r.totalPagas;
+  r.rb = rb; r.rentaMercado = rentaMercado; r.prestMon = prestMon;
+  r.cotizTotal = cotizTotal;
+  r.miembros = h.adultos.length + nHijos;
+  return r;
+}
+
+
+// ===== Modelo de ciclo vital (euros constantes de 2023) =====
+const L = {
+  jubilacion: 67,
+  esperanza: { hombre: 84, mujer: 88, media: 86 },       // INE 2023: 65 + esperanza de vida a los 65 años (19,3 y 23,1)
+  pensionMax: 3059.23 * 14,                                // 2023
+  pensionMin: 721.70 * 14,                                 // 2023, 65+ sin cónyuge a cargo
+  paroMax: 1225 * 12,                                      // tope sin hijos 2023 (aprox.)
+  paroTasa: 0.6,                                           // 70 % los primeros 6 meses y 50 % después
+  // Resto del gasto público (IGAE 2023, clasificación funcional, millones €), reparto de FEDEA (sección 7.3)
+  otrosPorPersona: (84784 - 35707 + 13987 + 27443 + 14640 + 7643 + 18729 + 74958 * 2 / 3) * 1e6 / 48.3e6,
+  otrosPorOcupado: (74958 / 3) * 1e6 / 21.2e6,
+  inicioTrabajo: { obligatoria: 18, media: 20, universidad: 23 },
+  finEstudios: { obligatoria: 17, media: 19, universidad: 22 },
+};
+
+function perfilSalarial(edad, inicio) {
+  const x = edad - inicio;
+  return Math.exp(0.035 * x - 0.0006 * x * x);
+}
+
+function irpfIndividual(rendTrabajo, ssTrab, edad, minHijos, rendAutNeto) {
+  let rn = 0, ingreso = rendTrabajo;
+  if (rendTrabajo > 0) {
+    const rnt = rendTrabajo - ssTrab;
+    rn += Math.max(0, rnt - 2000 - reduccionTrabajo(rnt));
+  }
+  if (rendAutNeto > 0) rn += Math.max(0, rendAutNeto - Math.min(2000, rendAutNeto * 0.05));
+  const minimo = P.minPersonal + (edad >= 65 ? P.min65 : 0) + minHijos;
+  let c = Math.max(0, cuotaEscala(rn, P.escala) - cuotaEscala(Math.min(minimo, rn), P.escala));
+  if (!rendAutNeto && ingreso <= 22000) c = Math.min(c, 0.43 * Math.max(0, ingreso - 15876));
+  return c;
+}
+
+function impuestosConsumo(rb, fInd) {
+  const I = k => interpFEDEA(rb, k);
+  return {
+    iva: (I('iva') + I('itp')) * fInd,
+    especiales: (I('alc') + I('tab') + I('hid') + I('ele') + I('ips')) * fInd,
+    otros: I('isoc') + I('ip') + I('ibi'),
+  };
+}
+
+// p = { salario, tipo:'salario'|'autonomo', sexo, estudios, anosParo, hijos, ccaa, alt, otrosGastos, descuento }
+function cicloVital(p) {
+  const E = L.esperanza[p.sexo] || 86;
+  const inicio = L.inicioTrabajo[p.estudios], finEst = L.finEstudios[p.estudios];
+  const anosTrab = L.jubilacion - inicio;
+  const u = Math.min(0.5, Math.max(0, (+p.anosParo || 0) / anosTrab));
+  const reg = FEDEA.ccaa.find(c => c.label === p.ccaa), tot = FEDEA.ccaa.find(c => c.label.startsWith('Total'));
+  const fInd = ['Canarias', 'Ceuta', 'Melilla'].includes(p.ccaa) ? reg.indF / tot.indF : 1;
+  const fCot = p.alt ? P.alt.cotizTributo : 1;
+  const r = Math.max(0, +p.descuento || 0) / 100;
+
+  // normaliza el perfil para que la media de la carrera sea el salario indicado
+  let sumPerfil = 0;
+  for (let a = inicio; a < L.jubilacion; a++) sumPerfil += perfilSalarial(a, inicio);
+  const k = p.salario * anosTrab / sumPerfil;
+
+  // pensión: base reguladora = media de los últimos 25 años (bases topadas), % según años cotizados
+  let base = 0;
+  for (let a = L.jubilacion - 25; a < L.jubilacion; a++) {
+    const w = k * perfilSalarial(a, inicio);
+    base += p.tipo === 'autonomo' ? baseAutonomoAnual(w) : Math.min(w, P.baseMax);
+  }
+  base /= 25;
+  const cotizados = anosTrab;
+  const pct = cotizados < 15 ? 0 : Math.min(1, 0.5 + (cotizados - 15) / 21.5 * 0.5);
+  const pension = cotizados < 15 ? 0 : Math.min(L.pensionMax, Math.max(L.pensionMin, base * pct));
+
+  const anos = [];
+  const tot2 = { recibe: {}, paga: {} };
+  const add = (o, key, v, f) => { o[key] = (o[key] || 0) + v * f; };
+  for (let edad = 0; edad < E; edad++) {
+    const y = { edad, recibe: {}, paga: {} };
+    // sanidad
+    y.recibe.sanidad = edad < 18 ? P.sanidad.hijo : edad < 30 ? P.sanidad.menor30 : edad < 65 ? P.sanidad.de30a64 : P.sanidad.mas65;
+    if (edad >= 3 && edad <= finEst) y.recibe.educacion = P.educacionPorHijo;
+    if (p.otrosGastos) y.recibe.otros = L.otrosPorPersona;
+
+    if (edad >= inicio && edad < L.jubilacion) {
+      const w = k * perfilSalarial(edad, inicio);
+      // hijos: nacen a los 30, 32 y 34 años; mitad del mínimo para cada progenitor
+      let minH = 0, menores3 = 0;
+      for (let i = 0; i < (+p.hijos || 0); i++) {
+        const eh = edad - (30 + 2 * i);
+        if (eh >= 0 && eh < 25) { minH += P.minDesc[Math.min(i, 3)] / 2; if (eh < 3) { minH += P.minDesc3 / 2; menores3++; } }
+      }
+      // año trabajado (peso 1-u)
+      let st = 0, se = 0, ca = 0, irpf = 0, rb;
+      if (p.tipo === 'autonomo') {
+        ca = cotizAutonomo(w);
+        irpf = irpfIndividual(0, 0, edad, minH, Math.max(0, w - ca));
+        rb = w;
+      } else {
+        const b = Math.min(w, P.baseMax);
+        st = b * P.ssTrab; se = b * P.ssEmp;
+        irpf = irpfIndividual(w, st, edad, minH, 0);
+        rb = w + se;
+      }
+      if (p.sexo === 'mujer') irpf = Math.max(0, irpf - menores3 * P.dedMaternidad);
+      const ic = impuestosConsumo(rb, fInd);
+      const e = 1 - u;
+      y.paga.irpf = irpf * e; y.paga.cotTrab = (st + ca) * fCot * e; y.paga.cotEmp = se * fCot * e;
+      y.paga.iva = ic.iva * e; y.paga.especiales = ic.especiales * e; y.paga.otrosImp = ic.otros * e;
+      if (p.otrosGastos) y.recibe.otros += L.otrosPorOcupado * e;
+      // año en paro (peso u)
+      if (u > 0) {
+        const pr = Math.min(L.paroMax, L.paroTasa * w);
+        const icp = impuestosConsumo(pr, fInd);
+        y.recibe.desempleo = pr * (p.alt ? P.alt.desempleoTransfer : 1) * u;
+        y.paga.irpf += irpfIndividual(pr, 0, edad, minH, 0) * u;
+        y.paga.iva += icp.iva * u; y.paga.especiales += icp.especiales * u; y.paga.otrosImp += icp.otros * u;
+      }
+      y.fase = 'trabajo';
+    } else if (edad >= L.jubilacion) {
+      y.recibe.pension = pension * (p.alt ? P.alt.pensionTransfer : 1);
+      y.paga.irpf = irpfIndividual(pension, 0, edad, 0, 0);
+      const ic = impuestosConsumo(pension, fInd);
+      y.paga.iva = ic.iva; y.paga.especiales = ic.especiales; y.paga.otrosImp = ic.otros;
+      y.fase = 'jubilacion';
+    } else y.fase = 'formacion';
+
+    const f = 1 / Math.pow(1 + r, edad);
+    y.recibeT = Object.values(y.recibe).reduce((s, v) => s + v, 0);
+    y.pagaT = Object.values(y.paga).reduce((s, v) => s + v, 0);
+    y.saldo = y.recibeT - y.pagaT;
+    for (const [kk, v] of Object.entries(y.recibe)) add(tot2.recibe, kk, v, f);
+    for (const [kk, v] of Object.entries(y.paga)) add(tot2.paga, kk, v, f);
+    anos.push(y);
+  }
+  const sum = o => Object.values(o).reduce((s, v) => s + v, 0);
+  return { anos, recibe: tot2.recibe, paga: tot2.paga, totalRecibe: sum(tot2.recibe), totalPaga: sum(tot2.paga),
+    saldo: sum(tot2.recibe) - sum(tot2.paga), pension, base, pct, inicio, E, anosTrab, u };
+}
+
+function baseAutonomoAnual(rend) {
+  if (rend <= 0) return 0;
+  const mensual = rend * 0.93 / 12;
+  return P.tramosAut.find(t => mensual <= t[0])[1] * 12;
+}
+
+// Distribución salarial de los asalariados (INE, EES 2023): lognormal ajustada a mediana 23.349 € y P90 49.836 €
+const SAL = { mediana: 23349, p75: 34992, p90: 49836 };
+SAL.sigma = Math.log(SAL.p90 / SAL.mediana) / 1.2816;
+function percentilSalario(s) {
+  const z = Math.log(s / SAL.mediana) / SAL.sigma;
+  // aproximación de la normal acumulada
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z * z / 2);
+  const q = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? 1 - q : q;
+}
+function salarioPercentil(pc) { // inversa por bisección
+  let lo = 3000, hi = 500000;
+  for (let i = 0; i < 60; i++) { const m = Math.sqrt(lo * hi); if (percentilSalario(m) < pc) lo = m; else hi = m; }
+  return Math.sqrt(lo * hi);
+}
+function umbralEquilibrio(p) {
+  let lo = 8000, hi = 300000;
+  if (cicloVital({ ...p, salario: hi }).saldo > 0) return hi;
+  if (cicloVital({ ...p, salario: lo }).saldo < 0) return lo;
+  for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if (cicloVital({ ...p, salario: m }).saldo > 0) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+
+
+</script>
+<script>
+(function(){
+const fmt=new Intl.NumberFormat('es-ES',{maximumFractionDigits:0,useGrouping:'always'});
+const eur=v=>fmt.format(Math.round(v))+' €';
+const signed=v=>(v>0.5?'+':v<-0.5?'−':'')+fmt.format(Math.abs(Math.round(v)))+' €';
+const miles=v=>(v>0?'+':v<0?'−':'')+fmt.format(Math.abs(Math.round(v/1000)))+' mil €';
+const parseMoney=s=>{const n=parseFloat(String(s).replace(/\./g,'').replace(/\s|€/g,'').replace(',','.'));return isFinite(n)?n:0;};
+const $=id=>document.getElementById(id);
+
+FEDEA.ccaa.filter(c=>!c.label.startsWith('Total')).map(c=>c.label).sort((a,b)=>a.localeCompare(b,'es')).forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;if(l==='Madrid')o.selected=true;$('ccaa').appendChild(o);});
+
+// slider logarítmico 9.000 – 200.000 €
+const SMIN=9000,SMAX=200000;
+const toSlider=s=>Math.round(Math.log(Math.min(Math.max(s,SMIN),SMAX)/SMIN)/Math.log(SMAX/SMIN)*1000);
+const fromSlider=v=>Math.round(SMIN*Math.pow(SMAX/SMIN,v/1000)/100)*100;
+
+const PRESETS=[['P10',0.10],['Mediana',0.5],['P75',0.75],['P90',0.90],['P99',0.99]];
+PRESETS.forEach(([n,pc])=>{const b=document.createElement('button');b.type='button';b.className='chip';
+  const s=pc===0.5?23349:pc===0.75?34992:pc===0.9?49836:Math.round(salarioPercentil(pc)/100)*100;
+  b.textContent=`${n} · ${fmt.format(s)} €`;b.dataset.s=s;b.addEventListener('click',()=>{setSalario(s);update();});$('presets').appendChild(b);});
+function markPreset(s){document.querySelectorAll('#presets .chip').forEach(c=>c.setAttribute('aria-pressed',String(+c.dataset.s===Math.round(s))));}
+function setSalario(s){$('salario').value=fmt.format(s);$('salRange').value=toSlider(s);}
+$('salRange').addEventListener('input',e=>{$('salario').value=fmt.format(fromSlider(+e.target.value));update();});
+$('salario').addEventListener('input',()=>{$('salRange').value=toSlider(parseMoney($('salario').value));update();});
+$('salario').addEventListener('change',()=>{$('salario').value=fmt.format(parseMoney($('salario').value));});
+document.querySelectorAll('#f select, #f input[type=checkbox], #f input[type=radio]').forEach(el=>el.addEventListener('input',update));
+
+function leer(){return{salario:Math.max(1000,parseMoney($('salario').value)),tipo:document.querySelector('input[name=tipo]:checked').value,sexo:$('sexo').value,estudios:$('estudios').value,
+  anosParo:+$('paro').value,hijos:+$('hijos').value,ccaa:$('ccaa').value,alt:false,otrosGastos:true,descuento:0};}
+
+const NAMES={sanidad:'Sanidad pública',educacion:'Educación pública',desempleo:'Prestación por desempleo',pension:'Pensión de jubilación',otros:'Resto del gasto público',
+  irpf:'IRPF',cotTrab:'Cotizaciones del trabajador',cotEmp:'Cotizaciones de la empresa',iva:'IVA y transmisiones',especiales:'Impuestos especiales',otrosImp:'Sociedades, IBI y Patrimonio'};
+const RCOL={pension:'var(--recibe)',sanidad:'var(--recibe-3)',educacion:'var(--recibe-4)',desempleo:'var(--recibe-2)',otros:'var(--recibe-2)'};
+const PCOL={irpf:'var(--paga)',cotTrab:'var(--paga-2)',cotEmp:'var(--paga-3)',iva:'var(--paga-4)',especiales:'var(--paga-5)',otrosImp:'var(--paga-5)'};
+const ORD_R=['pension','sanidad','educacion','desempleo','otros'],ORD_P=['irpf','cotTrab','cotEmp','iva','especiales','otrosImp'];
+
+function update(){
+  const p=leer();const r=cicloVital(p);const pos=r.saldo>=0;
+  markPreset(p.salario);
+  const pc=percentilSalario(p.salario);
+  $('pctl').innerHTML=`Cobras más que el <b>${fmt.format(Math.round(pc*100))} %</b> de los asalariados (INE 2023).`;
+  $('badge').className='badge '+(pos?'pos':'neg');$('badge').textContent=pos?'Beneficiario neto en su vida':'Contribuyente neto en su vida';
+  $('big').className='big '+(pos?'pos':'neg');$('big').innerHTML=`${signed(r.saldo)}<small>en tu vida</small>`;
+  const ratio=Math.round(r.totalRecibe/r.totalPaga*100);
+  $('verdictText').innerHTML=`De los 0 a los ${r.E} años recibes <b>${eur(r.totalRecibe)}</b> y pagas <b>${eur(r.totalPaga)}</b>`+(p.descuento?` (valor actual al nacer, descontando al ${p.descuento} %)`:'')+`. Por cada 100 € que aportas, el sector público te devuelve <b>${fmt.format(ratio)} €</b>. Equivale a <b>${signed(r.saldo/r.E)}</b> por año vivido.`;
+  $('mbN').textContent=miles(r.saldo);$('mbN').style.color=pos?'var(--recibe)':'var(--paga)';
+
+  const max=Math.max(r.totalRecibe,r.totalPaga,1);
+  const seg=(o,ord,col)=>ord.filter(k=>o[k]>1).map(k=>`<span style="width:${o[k]/max*100}%;background:${col[k]}" title="${NAMES[k]}: ${eur(o[k])}"></span>`).join('');
+  const leg=(o,ord,col)=>ord.filter(k=>o[k]>1).map(k=>`<span><i style="background:${col[k]}"></i>${NAMES[k]}</span>`).join('');
+  $('bars').innerHTML=`<div class="bar-row"><span class="lab" style="color:var(--recibe)">Recibes</span><div class="bar">${seg(r.recibe,ORD_R,RCOL)}</div><span class="tot num">${miles(r.totalRecibe).replace('+','')}</span></div>
+    <div class="bar-row"><span class="lab" style="color:var(--paga)">Pagas</span><div class="bar">${seg(r.paga,ORD_P,PCOL)}</div><span class="tot num">${miles(r.totalPaga).replace('+','')}</span></div>
+    <div class="legend">${leg(r.recibe,ORD_R,RCOL)}${leg(r.paga,ORD_P,PCOL)}</div>`;
+
+  // tabla
+  const yrs=(k)=>{const a=r.anos.filter(y=>(y.recibe[k]||y.paga[k]||0)>0);return a.length?`${a[0].edad}–${a[a.length-1].edad} años`:'';};
+  const row=(k,v,col)=>`<tr><td><span class="dot" style="background:${col[k]}"></span>${NAMES[k]}<span class="note">${yrs(k)}</span></td><td class="v">${eur(v)}</td></tr>`;
+  let t=`<tr class="grp r"><th colspan="2">Lo que recibes</th></tr>`+ORD_R.filter(k=>r.recibe[k]>1).map(k=>row(k,r.recibe[k],RCOL)).join('')
+    +`<tr class="sum"><td>Total recibido</td><td class="v">${eur(r.totalRecibe)}</td></tr>`
+    +`<tr class="grp p"><th colspan="2">Lo que pagas</th></tr>`+ORD_P.filter(k=>r.paga[k]>1).map(k=>row(k,r.paga[k],PCOL)).join('')
+    +`<tr class="sum"><td>Total pagado</td><td class="v">${eur(r.totalPaga)}</td></tr>`
+    +`<tr class="saldo"><td>Saldo de toda la vida</td><td class="v" style="color:${pos?'var(--recibe)':'var(--paga)'}">${signed(r.saldo)}</td></tr>`;
+  $('tabla').innerHTML=t;
+  $('liqSub').textContent=p.descuento?`Importes acumulados de toda la vida, en valor actual al nacer (descuento del ${p.descuento} % anual).`:'Importes acumulados de toda la vida, en euros de 2023.';
+  // primer año con saldo acumulado positivo de nuevo
+  let acc=0,cruce=null,minAcc=0,edadMin=0;r.anos.forEach(y=>{acc+=y.saldo;if(acc<minAcc){minAcc=acc;edadMin=y.edad;}});
+  acc=0;r.anos.forEach(y=>{acc+=y.saldo;if(y.edad>edadMin&&acc>=0&&cruce===null&&minAcc<0)cruce=y.edad;});
+  $('facts').innerHTML=`<div><div class="k">Pensión estimada</div><div class="n">${eur(r.pension)}/año</div></div>
+    <div><div class="k">Años cotizados</div><div class="n">${r.anosTrab}</div></div>
+    <div><div class="k">Mayor deuda acumulada</div><div class="n">${minAcc<0?miles(minAcc)+' a los '+edadMin:'Nunca'}</div></div>
+    <div><div class="k">Recuperas lo aportado</div><div class="n">${minAcc>=0?'Siempre en positivo':cruce!==null?'A los '+cruce+' años':'Nunca'}</div></div>`;
+
+  drawLife(r);
+  drawTramos(p);
+}
+
+function drawLife(r){
+  const W=660,H=300,m={l:58,r:56,t:16,b:34};
+  const n=r.anos.length;const bw=(W-m.l-m.r)/n;
+  const ys=r.anos.map(y=>y.saldo);let acc=0;const cum=r.anos.map(y=>acc+=y.saldo);
+  let ymax=Math.max(...ys,1000),ymin=Math.min(...ys,-1000);
+  const st=(ymax-ymin)>80000?20000:(ymax-ymin)>40000?10000:5000;ymax=Math.ceil(ymax/st)*st;ymin=Math.floor(ymin/st)*st;
+  const Y=v=>m.t+(ymax-v)/(ymax-ymin)*(H-m.t-m.b);
+  let cmax=Math.max(...cum,0),cmin=Math.min(...cum,0);const cs=niceStep(cmax-cmin);cmax=Math.ceil(cmax/cs)*cs;cmin=Math.floor(cmin/cs)*cs;if(cmax===cmin)cmax=cs;
+  const C=v=>m.t+(cmax-v)/(cmax-cmin)*(H-m.t-m.b);
+  const X=i=>m.l+i*bw;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Saldo anual y acumulado por edad">`;
+  // fases
+  const fase=[['formacion','Estudios'],['trabajo','Vida laboral'],['jubilacion','Jubilación']];
+  fase.forEach(([f,l])=>{const a=r.anos.filter(y=>y.fase===f);if(!a.length)return;const x0=X(a[0].edad),x1=X(a[a.length-1].edad+1);
+    s+=`<rect x="${x0}" y="${m.t}" width="${x1-x0}" height="${H-m.t-m.b}" fill="${f==='trabajo'?'var(--soft)':'transparent'}" opacity=".6"/>`;
+    s+=`<text x="${(x0+x1)/2}" y="${m.t+12}" text-anchor="middle" class="lbl" style="fill:var(--muted)">${l}</text>`;});
+  for(let v=ymin;v<=ymax;v+=st){s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="${v===0?1.2:.5}"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end">${v===0?'0':(v>0?'+':'−')+fmt.format(Math.abs(v)/1000)+' mil'}</text>`;}
+  for(let v=cmin;v<=cmax;v+=cs){s+=`<text x="${W-m.r+6}" y="${C(v)+4}" style="fill:var(--accent)">${(v>0?'+':v<0?'−':'')+fmt.format(Math.abs(v)/1000)+'k'}</text>`;}
+  r.anos.forEach((y,i)=>{const v=y.saldo;s+=`<rect x="${X(i)+.5}" y="${Math.min(Y(v),Y(0))}" width="${Math.max(bw-1,1)}" height="${Math.abs(Y(v)-Y(0))}" fill="${v>=0?'var(--recibe)':'var(--paga)'}" opacity=".85"/>`;});
+  s+=`<path d="M${cum.map((v,i)=>`${X(i)+bw/2},${C(v)}`).join(' L')}" fill="none" stroke="var(--accent)" stroke-width="2.2"/>`;
+  s+=`<circle cx="${X(n-1)+bw/2}" cy="${C(cum[n-1])}" r="4" fill="var(--accent)"/>`;
+  [0,10,20,30,40,50,60,70,80].forEach(a=>{if(a<n)s+=`<text x="${X(a)+bw/2}" y="${H-m.b+16}" text-anchor="middle">${a}</text>`;});
+  s+=`<text x="${(m.l+W-m.r)/2}" y="${H-3}" text-anchor="middle">Edad · eje izquierdo: saldo del año · eje derecho (azul): acumulado</text></svg>`;
+  $('chartLife').innerHTML=s;
+}
+function niceStep(span){const raw=span/5;const p=Math.pow(10,Math.floor(Math.log10(raw||1)));const f=raw/p;return (f<1.5?1:f<3?2:f<7?5:10)*p;}
+
+function drawTramos(p){
+  const W=660,H=260,m={l:66,r:16,t:16,b:40};
+  const sMin=9000,sMax=150000;const X=s=>m.l+Math.log(s/sMin)/Math.log(sMax/sMin)*(W-m.l-m.r);
+  const pts=[];for(let i=0;i<=60;i++){const s=sMin*Math.pow(sMax/sMin,i/60);pts.push([s,cicloVital({...p,salario:s}).saldo]);}
+  const you=cicloVital(p).saldo;
+  let ymax=Math.max(...pts.map(q=>q[1]),you,0),ymin=Math.min(...pts.map(q=>q[1]),you,0);const st=niceStep(ymax-ymin);ymax=Math.ceil(ymax/st)*st;ymin=Math.floor(ymin/st)*st;
+  const Y=v=>m.t+(ymax-v)/(ymax-ymin)*(H-m.t-m.b);
+  const th=umbralEquilibrio(p);const thp=percentilSalario(th);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Saldo de toda la vida según el salario">`;
+  for(let v=ymin;v<=ymax;v+=st){s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="${v===0?1.2:.5}"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end">${v===0?'0':(v>0?'+':'−')+fmt.format(Math.abs(v)/1000)+' mil'}</text>`;}
+  if(th>sMin&&th<sMax) s+=`<rect x="${m.l}" y="${m.t}" width="${X(th)-m.l}" height="${H-m.t-m.b}" fill="var(--recibe-4)" opacity=".45"/>`;
+  [10000,15000,20000,30000,50000,75000,100000,150000].forEach(v=>{s+=`<text x="${X(v)}" y="${H-m.b+16}" text-anchor="middle">${fmt.format(v/1000)} mil</text>`;});
+  s+=`<text x="${(m.l+W-m.r)/2}" y="${H-3}" text-anchor="middle">Salario bruto anual medio de la carrera (escala logarítmica)</text>`;
+  s+=`<path d="M${pts.map(q=>`${X(q[0])},${Y(q[1])}`).join(' L')}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
+  [['Mediana',23349],['P90',49836]].forEach(([l,v])=>{s+=`<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--muted)" stroke-dasharray="2 3"/><text x="${X(v)+4}" y="${H-m.b-6}">${l}</text>`;});
+  if(th>sMin&&th<sMax) s+=`<text x="${X(th)-6}" y="${m.t+14}" text-anchor="end" class="lbl" style="fill:var(--recibe)" font-weight="700">Beneficiarios</text><text x="${X(th)+6}" y="${m.t+14}" class="lbl" style="fill:var(--paga)" font-weight="700">Contribuyentes</text>`;
+  const ux=X(Math.min(Math.max(p.salario,sMin),sMax));s+=`<circle cx="${ux}" cy="${Y(you)}" r="6.5" fill="var(--accent)" stroke="var(--sheet)" stroke-width="2"/>`;
+  s+=`<text x="${ux+(ux>W-140?-10:10)}" y="${Y(you)-8}" text-anchor="${ux>W-140?'end':'start'}" class="lbl" font-weight="700" style="fill:var(--accent)">Tú</text></svg>`;
+  $('chartTramos').innerHTML=s;
+  const share=Math.round(thp*100);
+  $('tramoHead').innerHTML= th>=sMax? `Con estos supuestos, <span class="r">prácticamente todos los asalariados</span> reciben más de lo que pagan.`
+    : th<=sMin? `Con estos supuestos, casi ningún asalariado recibe más de lo que paga.`
+    : `Quien cobra menos de <span class="num">${eur(Math.round(th/100)*100)}</span> recibe más de lo que paga en su vida: ${share>=50?'<span class="r">':''}el ${share} % de los asalariados${share>=50?'</span>':''}.`;
+  let d='';for(let i=0;i<10;i++){const s0=salarioPercentil((i+0.5)/10);const v=cicloVital({...p,salario:s0}).saldo;d+=`<div class="${v>=0?'pos':'neg'}"><b>D${i+1}</b>${fmt.format(Math.round(s0/1000))}k €<br>${(v>0?'+':v<0?'−':'')+fmt.format(Math.abs(Math.round(v/1000)))}k</div>`;}
+  $('dec').innerHTML=d;
+}
+
+setSalario(23349);update();
+})();
+</script>
+
+</body>
+</html>
