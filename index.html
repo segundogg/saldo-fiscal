@@ -278,7 +278,7 @@ tr.saldo td{font-weight:800;font-size:16px;border-bottom:0;padding-top:12px}
       <ul>
         <li><b>Euros de 2023:</b> cada año de tu vida se valora con las cuantías, tipos y prestaciones de 2023. Es una foto del sistema actual aplicada a una vida completa, no una proyección.</li>
         <li><b>Carrera:</b> trabajas desde que acabas los estudios hasta los 67. Tu salario sigue un perfil por edad (empiezas un 30 % por debajo de tu media y llegas a un máximo hacia los 50), y la media de toda la carrera es el salario que indicas. Los años de paro se reparten a lo largo de la carrera, con una prestación del 60 % del salario hasta 14.700 € al año.</li>
-        <li><b>Pensión:</b> media de tus bases de cotización de los últimos 25 años, con el porcentaje que corresponde a tus años cotizados y los límites de 2023 (mínima de 10.104 € y máxima de 42.829 € al año). Los autónomos cotizan y cobran por la base mínima de su tramo.</li>
+        <li><b>Pensión:</b> el 80 % de tu base media de cotización de toda la carrera, la tasa de reemplazo media en España: la OCDE la sitúa en torno al 80 % para el trabajador medio, y la pensión media de quienes se jubilan (1.620 € al mes en 14 pagas) equivale al 81 % del salario medio. Con los límites de 2023: mínima de 10.104 € y máxima de 42.829 € al año. Los autónomos cotizan por la base mínima de su tramo.</li>
         <li><b>Esperanza de vida:</b> 65 años más la esperanza de vida a esa edad según el INE.</li>
       </ul>
     </div>
@@ -306,6 +306,7 @@ tr.saldo td{font-weight:800;font-size:16px;border-bottom:0;padding-top:12px}
         <li>López Laborda, J., Marín González, C. y Onrubia, J. (2026). <i>Observatorio sobre el reparto de los impuestos y las prestaciones entre los hogares españoles. Décimo informe, 2022 y 2023</i>. FEDEA, EEE 2026/13, y su anexo estadístico.</li>
         <li>INE, <a href="https://ine.es/dyngs/Prensa/EAES2023.htm" target="_blank" rel="noopener">Encuesta Anual de Estructura Salarial 2023</a>.</li>
         <li>IGAE, <a href="https://www.igae.pap.hacienda.gob.es/sitios/igae/es-ES/Contabilidad/ContabilidadNacional/Publicaciones/Documents/AAPP_A/Funcional%202019-2023.pdf" target="_blank" rel="noopener">Clasificación funcional del gasto de las Administraciones Públicas 2019-2023</a>.</li>
+        <li>OCDE, <i>Pensions at a Glance</i> (tasas brutas de reemplazo), y Seguridad Social, <a href="https://revista.seg-social.es/-/pension-media-jubilacion-asciende-1.445-75-euros-5-mas-hace-un-a%C3%B1o" target="_blank" rel="noopener">pensión media de las nuevas jubilaciones</a>.</li>
         <li>Ley 35/2006 del IRPF, Orden PCM/74/2023 de cotización y cuantías de pensiones de 2023.</li>
       </ul>
       <p style="margin-top:12px">Estimación orientativa con fines divulgativos.</p>
@@ -479,6 +480,7 @@ function simular(h) {
 // ===== Modelo de ciclo vital (euros constantes de 2023) =====
 const L = {
   jubilacion: 67,
+  tasaReemplazo: 0.80,
   esperanza: { hombre: 84, mujer: 88, media: 86 },       // INE 2023: 65 + esperanza de vida a los 65 años (19,3 y 23,1)
   pensionMax: 3059.23 * 14,                                // 2023
   pensionMin: 721.70 * 14,                                 // 2023, 65+ sin cónyuge a cargo
@@ -534,15 +536,17 @@ function cicloVital(p) {
   for (let a = inicio; a < L.jubilacion; a++) sumPerfil += perfilSalarial(a, inicio);
   const k = p.salario * anosTrab / sumPerfil;
 
-  // pensión: base reguladora = media de los últimos 25 años (bases topadas), % según años cotizados
+  // pensión calibrada con la tasa de reemplazo media: 80 % de la base media de cotización de toda la carrera
+  // (OCDE, Pensions at a Glance: ~80 % para el trabajador medio en España; pensión media de las nuevas
+  // jubilaciones 1.619,9 € x 14 = 22.679 € frente a un salario medio de 28.050 €, un 81 %)
   let base = 0;
-  for (let a = L.jubilacion - 25; a < L.jubilacion; a++) {
+  for (let a = inicio; a < L.jubilacion; a++) {
     const w = k * perfilSalarial(a, inicio);
     base += p.tipo === 'autonomo' ? baseAutonomoAnual(w) : Math.min(w, P.baseMax);
   }
-  base /= 25;
+  base /= anosTrab;
   const cotizados = anosTrab;
-  const pct = cotizados < 15 ? 0 : Math.min(1, 0.5 + (cotizados - 15) / 21.5 * 0.5);
+  const pct = cotizados < 15 ? 0 : L.tasaReemplazo;
   const pension = cotizados < 15 ? 0 : Math.min(L.pensionMax, Math.max(L.pensionMin, base * pct));
 
   const anos = [];
