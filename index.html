@@ -472,7 +472,8 @@ function servicios(d, netoAnualFA) {
   s.hipoteca = (d.hipAmort || 0) * comAmort + (d.hipCambio && d.hipTipo !== 'fijo' && d.hipAnios < 3 ? 0.0005 * (d.hipCapital || 0) : 0);
   s.leasing = d.leasing ? clamp0(d.cocheGasto - parseFloat(d.leasingTipo || 100)) * 12 : 0;
   const salDia = d.modo === 'asal' ? d.bruto / 365 : clamp0(d.ingresos - d.gastos) / 365;
-  s.permiso = d.permiso ? salDia * 28 : 0;
+  // Permiso parental: hoy ya se pagan 2 semanas; el programa llega a 4, así que suma 2 semanas más (14 días)
+  s.permiso = d.permiso ? salDia * 14 : 0;
   // 3 semanas más de permiso por nacimiento, pagadas al 100 % de la base (tope: base máxima), exentas de IRPF
   s.nacimiento = d.nacimiento ? Math.min(salDia, P.ss.baseMaxAnual / 365) * 21 : 0;
   s.total = s.crianza + s.comedor + s.infantil + s.transporte + s.alquiler + s.audif + s.leasing + s.topeGas + s.hipoteca + s.permiso + s.nacimiento;
@@ -683,7 +684,7 @@ const SEC_COMUNES = [
     N('comedorMes', 'Lo que pagas de comedor por hijo/a', 110, { u: '€/mes' }),
     C('becaComedor', 'Ya tengo beca de comedor completa', false),
     C('nacimiento', 'Vamos a tener un hijo/a o adoptar este año', false, { tag: '+3 semanas', hint: 'El permiso por nacimiento sube 3 semanas, cobradas al 100 % de tu base y sin IRPF. Se valora una sola vez.' }),
-    C('permiso', 'Me tomaría el permiso parental retribuido (hijos menores de 8 años)', false, { hint: 'Se valoran las 4 primeras semanas pagadas, una sola vez.' }),
+    C('permiso', 'Me tomaría el permiso parental retribuido (hijos menores de 8 años)', false, { hint: 'Hoy ya se pagan 2 semanas. Se valoran las 2 semanas pagadas más que añade el programa, una sola vez.' }),
     L('infantil', 'comedor', 'nacimiento', 'parental'),
   ]},
   { id: 'mov', title: 'Movilidad y salud', hint: 'Abono único, audífonos y coche eléctrico', open: false, fields: [
@@ -1034,7 +1035,7 @@ function calcPersona() {
     { n: 'Hipoteca sin comisiones', s: 'Amortización anticipada o paso a tipo fijo, hasta 2029', v: sv.hipoteca },
     { n: 'Leasing social de coche eléctrico', s: 'Escenario: ' + (state.leasingTipo === '150' ? '150' : '100') + ' € al mes con recarga', v: sv.leasing },
     { n: 'Permiso por nacimiento más largo', s: '3 semanas más pagadas, una sola vez', v: sv.nacimiento },
-    { n: 'Permiso parental retribuido', s: '4 semanas, una sola vez', v: sv.permiso },
+    { n: 'Permiso parental retribuido', s: '2 semanas pagadas más, hasta 4, una sola vez', v: sv.permiso },
   ];
   const visibles = rows.filter(x => Math.round(x.v) !== 0).sort((a, b) => Math.abs(b.v) - Math.abs(a.v)); // por relevancia
   const ocultas = rows.length - visibles.length;
@@ -1213,7 +1214,7 @@ const MEDIDAS = [
   ['Comedor escolar gratuito', 'Para todo el alumnado de Infantil y Primaria de la red pública.', 'm', 'Lo que pagas al mes por hijo de 3 a 11 años durante 9 meses lectivos.', 'comedor'],
   ['Educación de 0 a 3 años', 'Avanzar hacia la universalización de la educación de 0 a 3 años con más escuelas infantiles públicas.', 's', 'Si no tienes plaza pública y pagas una escuela infantil privada, ahorras esa cuota durante 11 meses por cada hijo de 0 a 3 años. Si ya tienes plaza pública, no hay ahorro.', 'infantil'],
   ['Permiso por nacimiento', 'Ampliar el permiso por nacimiento hasta las 20 semanas, con más flexibilidad a tiempo parcial desde la semana 16.', 's', '3 semanas más, valoradas a tu salario diario (con el tope de la base máxima de cotización) y exentas de IRPF. Solo cuenta ajena y autónomos, una vez.', 'nacimiento'],
-  ['Permiso parental retribuido', 'Pagar el permiso parental de cuidados hasta los 8 años, empezando por 4 semanas.', 's', '28 días de tu salario, una sola vez.', 'parental'],
+  ['Permiso parental retribuido', 'Pagar el permiso parental de cuidados hasta los 8 años, empezando por 4 semanas.', 's', 'Hoy ya se pagan 2 semanas, así que se suman las 2 que faltan hasta 4: 14 días de tu salario, una sola vez.', 'parental'],
   ['IPREM a 700 €', 'Subir el IPREM en 100 euros, de 600 a 700 €.', 's', 'Sube un 16,7 % el subsidio por desempleo. La prestación contributiva depende de lo cotizado y no cambia. Las pensiones mínimas suben hasta el SMI con la propuesta del 24 de octubre (ver más abajo).', 'iprem'],
   ['Audífonos', 'Financiar los audífonos a toda la población que los necesite.', 'm', '1.500 € de ayuda por audífono, una sola vez (detalle de los PGE 2026).', 'audif'],
   ['__G', '3. Una reforma fiscal en profundidad'],
